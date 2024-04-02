@@ -5,6 +5,8 @@ session_start();
 $username = "";
 $email = "";
 $errors = array();
+$title = "";
+$content = "";
 
 //connect to the database
 $db = mysqli_connect('localhost', 'jos', 'Boyfaded7552', 'blog');
@@ -62,11 +64,53 @@ if (isset($_POST['login_user'])) {
           $query = "SELECT * FROM users WHERE username='$username' AND password='$password'";
           $results = mysqli_query($db, $query);
           if (mysqli_num_rows($results) == 1) {
-            $_SESSION['username'] = $username;
+            $user = mysqli_fetch_assoc($results);
+            $_SESSION['user_id'] = $user['user_id']; // Assuming 'user_id' is the column name in your 'users' table
+            $_SESSION['username'] = $user['username']; // Set the username in the session
             $_SESSION['success'] = "You are now logged in";
+            
             header('location: index.php');
-          }else {
-                  array_push($errors, "Wrong username/password combination");
-          }
+          } else {
+            array_push($errors, "Wrong username/password combination");
+            }
+        
     }
   }
+
+//create a post
+
+// Check if user is logged in and get their ID (assuming you have stored it in the session)
+if (isset($_SESSION['user_id'])) {
+    $author_id = $_SESSION['user_id'];
+
+    if (isset($_POST['submit'])) {
+        $title = mysqli_real_escape_string($db, $_POST['title']);
+        $content = mysqli_real_escape_string($db, $_POST['content']);
+
+        // Validation
+        if (empty($title)) {
+            array_push($errors, 'Title is required');
+        }
+
+        if (empty($content)) {
+            array_push($errors, 'Content is required');
+        }
+
+        if (count($errors) == 0) {
+            $query = "INSERT INTO posts (title, content, author_id) VALUES ('$title', '$content', '$author_id')";
+            $result = mysqli_query($db, $query);
+            if ($result) {
+                $_SESSION["success"] = "Post created successfully";
+                header("location: index.php");
+                exit(); // Make sure to exit after redirecting
+            } else {
+                array_push($errors, "Error creating post: " . mysqli_error($db));
+            }
+        }
+    }
+} else {
+    // Handle case where user is not logged in or their ID is not available
+    // You can redirect them to a login page or handle it based on your application's logic
+    echo "User not logged in or ID not available";
+}
+mysqli_close($db);
